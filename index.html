@@ -1,0 +1,904 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>EcoDecide - Sistema de Selección Multicriterio (SAW)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --forest-900: #064e3b;
+      --forest-800: #065f46;
+      --forest-700: #047857;
+      --forest-600: #059669;
+      --forest-500: #10b981;
+      --forest-100: #d1fae5;
+      --forest-50: #ecfdf5;
+      
+      --accent-wood: #b45309;
+      --accent-warm: #f59e0b;
+      
+      --bg-page: #f0fdf4;
+      --card-bg: #ffffff;
+      --text-main: #0f172a;
+      --text-muted: #475569;
+      --border-soft: #a7f3d0;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background: linear-gradient(135deg, #ecfdf5 0%, #e0f2fe 100%);
+      color: var(--text-main);
+      padding: 30px 15px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+    }
+
+    .main-wrapper {
+      width: 100%;
+      max-width: 1120px;
+      background: var(--card-bg);
+      border-radius: 20px;
+      box-shadow: 0 20px 40px rgba(6, 78, 59, 0.08), 0 1px 3px rgba(0,0,0,0.05);
+      border: 1.5px solid var(--border-soft);
+      overflow: hidden;
+    }
+
+    /* Header temático de Reforestación */
+    .eco-header {
+      background: linear-gradient(135deg, var(--forest-900) 0%, var(--forest-700) 100%);
+      padding: 32px 30px;
+      color: #ffffff;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 20px;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .eco-header::after {
+      content: "🌲🌳🌱";
+      position: absolute;
+      right: 25px;
+      bottom: -15px;
+      font-size: 5rem;
+      opacity: 0.15;
+      pointer-events: none;
+    }
+
+    .header-content h1 {
+      font-size: 2rem;
+      font-weight: 800;
+      letter-spacing: -0.5px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 6px;
+    }
+
+    .header-content p {
+      color: var(--forest-100);
+      font-size: 1rem;
+      font-weight: 500;
+      max-width: 650px;
+    }
+
+    .badge-tag {
+      background: rgba(255, 255, 255, 0.15);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(255, 255, 255, 0.3);
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 0.82rem;
+      font-weight: 700;
+      color: #ffffff;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .container-body {
+      padding: 32px 30px;
+    }
+
+    /* Secciones */
+    .section-title-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 18px;
+      padding-bottom: 10px;
+      border-bottom: 2px solid var(--forest-50);
+    }
+
+    .section-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: var(--forest-900);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-title .number-circle {
+      width: 28px;
+      height: 28px;
+      background: var(--forest-600);
+      color: white;
+      border-radius: 50%;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.9rem;
+      font-weight: 700;
+    }
+
+    /* Sección 1: Ponderaciones */
+    .weights-card {
+      background: var(--forest-50);
+      border: 1.5px solid var(--border-soft);
+      border-radius: 16px;
+      padding: 24px;
+      margin-bottom: 35px;
+    }
+
+    .weights-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 14px 20px;
+    }
+
+    .weight-card-item {
+      background: #ffffff;
+      padding: 12px 16px;
+      border-radius: 12px;
+      border: 1px solid #e2e8f0;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      transition: all 0.2s;
+    }
+
+    .weight-card-item:hover {
+      border-color: var(--forest-500);
+      box-shadow: 0 4px 12px rgba(16, 185, 129, 0.08);
+    }
+
+    .criterion-meta {
+      display: flex;
+      flex-direction: column;
+      gap: 3px;
+    }
+
+    .criterion-meta label {
+      font-size: 0.92rem;
+      font-weight: 700;
+      color: var(--text-main);
+      cursor: pointer;
+    }
+
+    .badge-nature {
+      align-self: flex-start;
+      font-size: 0.72rem;
+      font-weight: 700;
+      padding: 2px 8px;
+      border-radius: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.3px;
+    }
+
+    .badge-cost {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+
+    .badge-benefit {
+      background: #dcfce7;
+      color: #166534;
+    }
+
+    .weight-input-box {
+      width: 80px;
+      padding: 8px;
+      font-size: 1.05rem;
+      font-weight: 800;
+      color: var(--forest-900);
+      background: var(--forest-50);
+      border: 1.5px solid var(--forest-500);
+      border-radius: 8px;
+      text-align: center;
+      outline: none;
+      transition: all 0.2s;
+    }
+
+    .weight-input-box:focus {
+      background: #ffffff;
+      box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.25);
+    }
+
+    .control-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      margin-top: 20px;
+      padding-top: 18px;
+      border-top: 1px dashed #cbd5e1;
+    }
+
+    .sum-badge-wrapper {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sum-badge {
+      font-size: 1.1rem;
+      font-weight: 800;
+      padding: 4px 10px;
+      border-radius: 8px;
+    }
+
+    .sum-badge.valid {
+      background: #dcfce7;
+      color: #166534;
+      border: 1px solid #86efac;
+    }
+
+    .sum-badge.invalid {
+      background: #fee2e2;
+      color: #991b1b;
+      border: 1px solid #fca5a5;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .btn {
+      font-size: 0.95rem;
+      font-weight: 700;
+      padding: 10px 22px;
+      border-radius: 10px;
+      border: none;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      transition: all 0.2s ease;
+    }
+
+    .btn-eco-primary {
+      background: linear-gradient(135deg, var(--forest-700) 0%, var(--forest-600) 100%);
+      color: #ffffff;
+      box-shadow: 0 4px 14px rgba(5, 150, 105, 0.35);
+    }
+
+    .btn-eco-primary:hover {
+      background: linear-gradient(135deg, var(--forest-800) 0%, var(--forest-700) 100%);
+      transform: translateY(-1px);
+    }
+
+    .btn-eco-ghost {
+      background: #ffffff;
+      color: var(--text-muted);
+      border: 1.5px solid #cbd5e1;
+    }
+
+    .btn-eco-ghost:hover {
+      background: #f8fafc;
+      border-color: #94a3b8;
+    }
+
+    /* Sección 2: Tabla de Proyectos */
+    .filter-sort-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.92rem;
+      font-weight: 600;
+      color: var(--text-muted);
+    }
+
+    .select-eco {
+      padding: 8px 14px;
+      border-radius: 8px;
+      border: 1.5px solid var(--forest-500);
+      background: #ffffff;
+      color: var(--forest-900);
+      font-weight: 700;
+      font-size: 0.9rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .table-container {
+      background: #ffffff;
+      border-radius: 14px;
+      border: 1.5px solid #e2e8f0;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead th {
+      background: var(--forest-800);
+      color: #ffffff;
+      font-size: 0.88rem;
+      font-weight: 700;
+      padding: 14px 16px;
+      white-space: nowrap;
+      letter-spacing: 0.3px;
+    }
+
+    thead th.center, tbody td.center {
+      text-align: center;
+    }
+
+    thead th.numeric, tbody td.numeric {
+      text-align: right;
+    }
+
+    tbody td {
+      padding: 12px 16px;
+      font-size: 0.92rem;
+      border-bottom: 1px solid #f1f5f9;
+      color: var(--text-main);
+    }
+
+    tbody tr:nth-child(even) td {
+      background: #fbfdfc;
+    }
+
+    tbody tr:hover td {
+      background: #ecfdf5;
+    }
+
+    /* Proyecto con Imagen */
+    .project-profile {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+    }
+
+    .project-avatar {
+      width: 52px;
+      height: 52px;
+      border-radius: 10px;
+      object-fit: cover;
+      border: 2px solid var(--forest-100);
+      box-shadow: 0 2px 6px rgba(0,0,0,0.06);
+    }
+
+    .project-info-text .name {
+      font-weight: 700;
+      color: var(--forest-900);
+      font-size: 0.96rem;
+      display: block;
+    }
+
+    .project-info-text .subtext {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+    }
+
+    /* Badges de ranking */
+    .medal {
+      width: 30px;
+      height: 30px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 50%;
+      font-weight: 800;
+      font-size: 0.85rem;
+      background: #f1f5f9;
+      color: #64748b;
+    }
+
+    .medal-1 {
+      background: #fef08a;
+      color: #854d0e;
+      border: 2px solid #eab308;
+    }
+
+    .medal-2 {
+      background: #e2e8f0;
+      color: #334155;
+      border: 2px solid #94a3b8;
+    }
+
+    .medal-3 {
+      background: #fed7aa;
+      color: #9a3412;
+      border: 2px solid #f97316;
+    }
+
+    .score-badge {
+      display: inline-block;
+      padding: 5px 12px;
+      border-radius: 999px;
+      font-weight: 800;
+      font-size: 0.92rem;
+      background: var(--forest-100);
+      color: var(--forest-800);
+      border: 1px solid var(--forest-500);
+    }
+
+    .score-pending {
+      color: #94a3b8;
+      font-style: italic;
+      font-size: 0.85rem;
+    }
+
+    .footer-note {
+      margin-top: 25px;
+      text-align: center;
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      padding: 15px;
+      border-top: 1px solid #e2e8f0;
+    }
+  </style>
+</head>
+<body>
+
+<div class="main-wrapper">
+  <!-- ENCABEZADO -->
+  <header class="eco-header">
+    <div class="header-content">
+      <div style="margin-bottom: 8px;">
+        <span class="badge-tag">Sistemas de Apoyo a la Decisión • TDMC</span>
+      </div>
+      <h1>🌱 ReforestAdvisor (Método SAW)</h1>
+      <p>Evaluación y priorización multicriterio para la selección de proyectos de reforestación y restauración de áreas verdes.</p>
+    </div>
+  </header>
+
+  <main class="container-body">
+    <!-- SECCIÓN 1: PONDERACIÓN DE ATRIBUTOS -->
+    <div class="section-title-wrap">
+      <h2 class="section-title">
+        <span class="number-circle">1</span>
+        Ponderación de Criterios Ambientales y Económicos
+      </h2>
+    </div>
+
+    <div class="weights-card">
+      <div class="weights-grid">
+        <div class="weight-card-item">
+          <div class="criterion-meta">
+            <label for="w-costo">💰 Costo del Proyecto</label>
+            <span class="badge-nature badge-cost">Costo (Minimizar)</span>
+          </div>
+          <input type="number" id="w-costo" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
+        </div>
+
+        <div class="weight-card-item">
+          <div class="criterion-meta">
+            <label for="w-arboles">🌲 Árboles Plantados</label>
+            <span class="badge-nature badge-benefit">Beneficio (Maximizar)</span>
+          </div>
+          <input type="number" id="w-arboles" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
+        </div>
+
+        <div class="weight-card-item">
+          <div class="criterion-meta">
+            <label for="w-superv">🍃 Supervivencia Estimada</label>
+            <span class="badge-nature badge-benefit">Beneficio (Maximizar)</span>
+          </div>
+          <input type="number" id="w-superv" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
+        </div>
+
+        <div class="weight-card-item">
+          <div class="criterion-meta">
+            <label for="w-tiempo">⏳ Tiempo de Ejecución</label>
+            <span class="badge-nature badge-cost">Costo (Minimizar)</span>
+          </div>
+          <input type="number" id="w-tiempo" class="weight-input-box" step="0.05" min="0" max="1" value="0.10">
+        </div>
+
+        <div class="weight-card-item">
+          <div class="criterion-meta">
+            <label for="w-benamb">🌍 Beneficio Ambiental</label>
+            <span class="badge-nature badge-benefit">Beneficio (Maximizar)</span>
+          </div>
+          <input type="number" id="w-benamb" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
+        </div>
+
+        <div class="weight-card-item">
+          <div class="criterion-meta">
+            <label for="w-part">🤝 Participación Social</label>
+            <span class="badge-nature badge-benefit">Beneficio (Maximizar)</span>
+          </div>
+          <input type="number" id="w-part" class="weight-input-box" step="0.05" min="0" max="1" value="0.10">
+        </div>
+      </div>
+
+      <div class="control-actions-row">
+        <div class="sum-badge-wrapper">
+          Suma de ponderaciones: 
+          <span id="weight-sum-badge" class="sum-badge valid">1.00</span>
+          <span id="sum-error-msg" style="display:none; color: #dc2626; font-size: 0.85rem; font-weight: 700;">⚠️ Debe sumar exactamente 1.00</span>
+        </div>
+        <div class="button-group">
+          <button class="btn btn-eco-ghost" id="btn-reset">Restablecer</button>
+          <button class="btn btn-eco-primary" id="btn-calc">
+            <span>▶</span> Ejecutar Algoritmo SAW
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- SECCIÓN 2: PROYECTOS RECOMENDADOS -->
+    <div class="section-title-wrap">
+      <h2 class="section-title">
+        <span class="number-circle">2</span>
+        Proyectos Recomendados y Matriz de Desempeño
+      </h2>
+      <div class="filter-sort-bar">
+        <label for="sort-select">Ordenar por:</label>
+        <select id="sort-select" class="select-eco">
+          <option value="desc">Mayor a menor calificación (Mejor primero)</option>
+          <option value="asc">Menor a mayor calificación (Inverso)</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <table>
+        <thead>
+          <tr>
+            <th class="center" style="width: 60px;">Pos.</th>
+            <th>Proyecto de Reforestación</th>
+            <th class="numeric">Costo ($k)</th>
+            <th class="numeric">Árboles</th>
+            <th class="numeric">Superv. (%)</th>
+            <th class="numeric">Tiempo (m)</th>
+            <th class="numeric">Ben. Amb.</th>
+            <th class="numeric">Part. Com.</th>
+            <th class="center" style="width: 140px;">Calificación SAW</th>
+          </tr>
+        </thead>
+        <tbody id="projects-table-body">
+          <!-- Inyección dinámica -->
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="footer-note">
+      Universidad Autónoma de Sinaloa • Facultad de Ingeniería Mochis • Unidad Regional Norte
+    </footer>
+  </main>
+</div>
+
+<script>
+  // Configuración de criterios del modelo
+  const criteriaConfig = {
+    costo: { type: 'cost', inputId: 'w-costo' },
+    arboles: { type: 'benefit', inputId: 'w-arboles' },
+    superv: { type: 'benefit', inputId: 'w-superv' },
+    tiempo: { type: 'cost', inputId: 'w-tiempo' },
+    ben_amb: { type: 'benefit', inputId: 'w-benamb' },
+    part: { type: 'benefit', inputId: 'w-part' }
+  };
+
+  // Alternativas con fotos de bosques y reforestación de Unsplash
+  const projectAlternatives = [
+    {
+      id: 1,
+      name: "Parque Las Palmas",
+      desc: "Zona recreativa y área verde urbana",
+      costo: 180,
+      arboles: 500,
+      superv: 78,
+      tiempo: 4,
+      ben_amb: 80,
+      part: 75,
+      image: "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=160&auto=format&fit=crop&q=80"
+    },
+    {
+      id: 2,
+      name: "Cerro de la Memoria",
+      desc: "Reserva natural y sendero ecológico",
+      costo: 250,
+      arboles: 900,
+      superv: 72,
+      tiempo: 7,
+      ben_amb: 95,
+      part: 60,
+      image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=160&auto=format&fit=crop&q=80"
+    },
+    {
+      id: 3,
+      name: "Área Escolar Norte",
+      desc: "Cinturón verde en perímetro educativo",
+      costo: 120,
+      arboles: 350,
+      superv: 88,
+      tiempo: 3,
+      ben_amb: 70,
+      part: 92,
+      image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=160&auto=format&fit=crop&q=80"
+    },
+    {
+      id: 4,
+      name: "Arroyo San José",
+      desc: "Restauración de ribera y cuenca hídrica",
+      costo: 210,
+      arboles: 750,
+      superv: 82,
+      tiempo: 5,
+      ben_amb: 90,
+      part: 80,
+      image: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=160&auto=format&fit=crop&q=80"
+    },
+    {
+      id: 5,
+      name: "Zona Recreativa El Fuerte",
+      desc: "Bosque nativo y parque familiar",
+      costo: 160,
+      arboles: 600,
+      superv: 85,
+      tiempo: 4,
+      ben_amb: 84,
+      part: 78,
+      image: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=160&auto=format&fit=crop&q=80"
+    },
+    {
+      id: 6,
+      name: "Camellón Solidaridad",
+      desc: "Corredor biológico sobre avenida principal",
+      costo: 100,
+      arboles: 250,
+      superv: 90,
+      tiempo: 2,
+      ben_amb: 65,
+      part: 88,
+      image: "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=160&auto=format&fit=crop&q=80"
+    },
+    {
+      id: 7,
+      name: "Área Verde La Mochis",
+      desc: "Espacio comunitario y arbolado joven",
+      costo: 145,
+      arboles: 450,
+      superv: 86,
+      tiempo: 3,
+      ben_amb: 76,
+      part: 85,
+      image: "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=160&auto=format&fit=crop&q=80"
+    },
+    {
+      id: 8,
+      name: "Parque Nuevo Horizonte",
+      desc: "Área protegida periurbana y pulmón verde",
+      costo: 190,
+      arboles: 700,
+      superv: 80,
+      tiempo: 5,
+      ben_amb: 87,
+      part: 82,
+      image: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=160&auto=format&fit=crop&q=80"
+    }
+  ];
+
+  let currentDisplayList = [];
+  let hasExecutedSAW = false;
+
+  // Validación y feedback de la suma de pesos
+  function checkWeightSum() {
+    let sum = 0;
+    for (let key in criteriaConfig) {
+      sum += parseFloat(document.getElementById(criteriaConfig[key].inputId).value) || 0;
+    }
+    const badge = document.getElementById('weight-sum-badge');
+    const msg = document.getElementById('sum-error-msg');
+    badge.textContent = sum.toFixed(2);
+
+    if (Math.abs(sum - 1.0) < 0.001) {
+      badge.className = 'sum-badge valid';
+      msg.style.display = 'none';
+      return true;
+    } else {
+      badge.className = 'sum-badge invalid';
+      msg.style.display = 'inline';
+      return false;
+    }
+  }
+
+  // Vincular eventos de input a los pesos
+  for (let key in criteriaConfig) {
+    document.getElementById(criteriaConfig[key].inputId).addEventListener('input', checkWeightSum);
+  }
+
+  // Dibujar tabla
+  function renderView(items) {
+    const tbody = document.getElementById('projects-table-body');
+    tbody.innerHTML = '';
+
+    items.forEach(proj => {
+      const tr = document.createElement('tr');
+
+      let rankHtml = '-';
+      let rankClass = 'medal';
+      if (proj.rank !== undefined) {
+        rankHtml = proj.rank;
+        if (proj.rank === 1) rankClass += ' medal-1';
+        else if (proj.rank === 2) rankClass += ' medal-2';
+        else if (proj.rank === 3) rankClass += ' medal-3';
+      }
+
+      const scoreHtml = proj.score !== undefined
+        ? `<span class="score-badge">${proj.score.toFixed(4)}</span>`
+        : `<span class="score-pending">Sin evaluar</span>`;
+
+      tr.innerHTML = `
+        <td class="center"><span class="${rankClass}">${rankHtml}</span></td>
+        <td>
+          <div class="project-profile">
+            <img src="${proj.image}" alt="${proj.name}" class="project-avatar" loading="lazy">
+            <div class="project-info-text">
+              <span class="name">${proj.name}</span>
+              <span class="subtext">${proj.desc}</span>
+            </div>
+          </div>
+        </td>
+        <td class="numeric">${proj.costo}</td>
+        <td class="numeric">${proj.arboles.toLocaleString()}</td>
+        <td class="numeric">${proj.superv}%</td>
+        <td class="numeric">${proj.tiempo} m</td>
+        <td class="numeric">${proj.ben_amb} pts</td>
+        <td class="numeric">${proj.part} pts</td>
+        <td class="center">${scoreHtml}</td>
+      `;
+      tbody.appendChild(tr);
+    });
+  }
+
+  // Cálculo de SAW completo y desempate sucesivo
+  function computeSAW() {
+    // 1. Obtener los pesos actuales
+    const weights = {};
+    for (let key in criteriaConfig) {
+      weights[key] = parseFloat(document.getElementById(criteriaConfig[key].inputId).value) || 0;
+    }
+
+    // 2. Extraer mínimos y máximos de la matriz
+    const extremes = {};
+    for (let key in criteriaConfig) {
+      const values = projectAlternatives.map(p => p[key]);
+      extremes[key] = {
+        min: Math.min(...values),
+        max: Math.max(...values)
+      };
+    }
+
+    // 3. Normalizar y sumar ponderaciones
+    currentDisplayList = projectAlternatives.map(item => {
+      let finalScore = 0;
+      const normalizedRecord = {};
+
+      for (let key in criteriaConfig) {
+        let normVal = 0;
+        if (criteriaConfig[key].type === 'benefit') {
+          normVal = item[key] / extremes[key].max;
+        } else {
+          normVal = extremes[key].min / item[key];
+        }
+        normalizedRecord[key] = normVal;
+        finalScore += normVal * weights[key];
+      }
+
+      return {
+        ...item,
+        score: finalScore,
+        normalized: normalizedRecord
+      };
+    });
+
+    // 4. Regla de desempate: Ordenar criterios de mayor a menor peso
+    const criteriaPriority = Object.keys(weights).sort((a, b) => weights[b] - weights[a]);
+
+    // 5. Ordenar la lista (mayor a menor o menor a mayor)
+    const isDescending = document.getElementById('sort-select').value === 'desc';
+
+    currentDisplayList.sort((a, b) => {
+      const scoreDiff = b.score - a.score;
+      if (Math.abs(scoreDiff) > 0.00001) {
+        return isDescending ? scoreDiff : -scoreDiff;
+      }
+
+      // Desempate sucesivo por el criterio de mayor peso
+      for (let cKey of criteriaPriority) {
+        const normDiff = b.normalized[cKey] - a.normalized[cKey];
+        if (Math.abs(normDiff) > 0.00001) {
+          return isDescending ? normDiff : -normDiff;
+        }
+      }
+
+      return 0; // Empate absoluto en todas las características
+    });
+
+    // 6. Asignar números de posición respetando empates completos
+    for (let i = 0; i < currentDisplayList.length; i++) {
+      if (i === 0) {
+        currentDisplayList[0].rank = 1;
+      } else {
+        const prev = currentDisplayList[i - 1];
+        const curr = currentDisplayList[i];
+
+        let tieComplete = Math.abs(prev.score - curr.score) < 0.00001;
+        if (tieComplete) {
+          for (let cKey of criteriaPriority) {
+            if (Math.abs(prev.normalized[cKey] - curr.normalized[cKey]) >= 0.00001) {
+              tieComplete = false;
+              break;
+            }
+          }
+        }
+
+        curr.rank = tieComplete ? prev.rank : i + 1;
+      }
+    }
+
+    hasExecutedSAW = true;
+    renderView(currentDisplayList);
+  }
+
+  // Inicializar vista
+  window.addEventListener('DOMContentLoaded', () => {
+    checkWeightSum();
+    renderView(projectAlternatives);
+  });
+
+  // Botón calcular
+  document.getElementById('btn-calc').addEventListener('click', computeSAW);
+
+  // Selector de orden
+  document.getElementById('sort-select').addEventListener('change', () => {
+    if (hasExecutedSAW) {
+      computeSAW();
+    } else {
+      const order = document.getElementById('sort-select').value;
+      const reversed = [...projectAlternatives];
+      if (order === 'asc') reversed.reverse();
+      renderView(reversed);
+    }
+  });
+
+  // Botón restablecer valores originales
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    document.getElementById('w-costo').value = '0.20';
+    document.getElementById('w-arboles').value = '0.20';
+    document.getElementById('w-superv').value = '0.20';
+    document.getElementById('w-tiempo').value = '0.10';
+    document.getElementById('w-benamb').value = '0.20';
+    document.getElementById('w-part').value = '0.10';
+    checkWeightSum();
+    hasExecutedSAW = false;
+    renderView(projectAlternatives);
+  });
+</script>
+
+</body>
+</html>

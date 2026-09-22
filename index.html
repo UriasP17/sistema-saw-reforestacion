@@ -1,11 +1,507 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ReforestAdvisor — Selección Multicriterio (SAW y TOPSIS)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Zilla+Slab:wght@500;600;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --paper: #ece1c6;
+      --paper-card: #f8f1e0;
+      --paper-card-alt: #f2e9d4;
+      --ink: #2c2313;
+      --ink-muted: #6d6046;
+      --line: #cdbb8e;
+      --line-soft: #e0d3ac;
+
+      --moss-900: #333d24;
+      --moss-800: #414d2d;
+      --moss-700: #4d5c34;
+      --moss-500: #6c7f47;
+      --moss-100: #e6e9d1;
+
+      --clay-800: #7a3f22;
+      --clay-700: #8f4a29;
+      --clay-500: #ad6338;
+      --clay-100: #f1ddc9;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Plus Jakarta Sans', sans-serif;
+    }
+
+    body {
+      background: var(--paper);
+      color: var(--ink);
+      padding: 40px 16px;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: 0.35;
+      mix-blend-mode: multiply;
+      background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='140' height='140'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' stitchTiles='stitch'/><feColorMatrix type='matrix' values='0 0 0 0 0.17  0 0 0 0 0.14  0 0 0 0 0.08  0 0 0 0 0.05 0'/></filter><rect width='100%25' height='100%25' filter='url(%23n)'/></svg>");
+    }
+
+    .main-wrapper {
+      width: 100%;
+      max-width: 1160px;
+      background: var(--paper-card);
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      box-shadow: 0 0 0 5px var(--paper), 0 0 0 6px var(--line-soft);
+      overflow: hidden;
+      position: relative;
+      z-index: 1;
+    }
+
+    .eco-header {
+      background: var(--moss-900);
+      padding: 34px 36px 30px;
+      color: #ffffff;
+      border-bottom: 4px solid var(--clay-700);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .contour-overlay {
+      position: absolute;
+      inset: 0;
+      opacity: 0.16;
+      pointer-events: none;
+    }
+
+    .header-content {
+      position: relative;
+      z-index: 1;
+    }
+
+    .header-kicker {
+      font-family: 'Zilla Slab', serif;
+      font-size: 0.85rem;
+      font-weight: 600;
+      color: var(--clay-100);
+      border-left: 3px solid var(--clay-500);
+      padding-left: 10px;
+      margin-bottom: 14px;
+      letter-spacing: 0.2px;
+    }
+
+    .header-content h1 {
+      font-family: 'Zilla Slab', serif;
+      font-size: 2.1rem;
+      font-weight: 700;
+      letter-spacing: -0.2px;
+      margin-bottom: 8px;
+      color: var(--paper-card);
+    }
+
+    .header-content p {
+      color: var(--moss-100);
+      font-size: 0.98rem;
+      font-weight: 400;
+      max-width: 680px;
+      line-height: 1.55;
+    }
+
+    .container-body {
+      padding: 34px 36px 20px;
+    }
+
+    .section-title-wrap {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-bottom: 18px;
+      padding-bottom: 12px;
+      border-bottom: 2px dashed var(--line);
+    }
+
+    .section-title {
+      font-family: 'Zilla Slab', serif;
+      font-size: 1.2rem;
+      font-weight: 700;
+      color: var(--moss-900);
+      display: flex;
+      align-items: baseline;
+      gap: 10px;
+    }
+
+    .section-title .step-mark {
+      font-family: 'Zilla Slab', serif;
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--clay-700);
+      border-bottom: 2px solid var(--clay-500);
+      padding-bottom: 1px;
+    }
+
+    .weights-card {
+      background: var(--paper-card-alt);
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      padding: 4px 20px;
+      margin-bottom: 34px;
+    }
+
+    .weight-row {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 18px;
+      padding: 16px 4px;
+      border-bottom: 1px dashed var(--line);
+    }
+
+    .weight-row:last-child {
+      border-bottom: none;
+    }
+
+    .criterion-meta label {
+      font-size: 0.94rem;
+      font-weight: 600;
+      color: var(--ink);
+      cursor: pointer;
+    }
+
+    .criterion-type {
+      font-size: 0.82rem;
+      color: var(--ink-muted);
+      margin-left: 6px;
+    }
+
+    .weight-input-box {
+      width: 76px;
+      padding: 7px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1rem;
+      font-weight: 600;
+      color: var(--moss-900);
+      background: #ffffff;
+      border: 1px solid var(--moss-500);
+      border-radius: 5px;
+      text-align: center;
+      outline: none;
+      transition: box-shadow 0.15s;
+    }
+
+    .weight-input-box:focus {
+      box-shadow: 0 0 0 3px var(--moss-100);
+    }
+
+    .control-actions-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px 4px 20px;
+    }
+
+    .sum-badge-wrapper {
+      font-size: 0.92rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .sum-badge {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 1rem;
+      font-weight: 700;
+    }
+
+    .sum-badge.valid { color: var(--moss-700); }
+    .sum-badge.invalid { color: var(--clay-700); }
+
+    #sum-error-msg {
+      display: none;
+      color: var(--clay-700);
+      font-size: 0.85rem;
+      font-weight: 600;
+    }
+
+    .button-group {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .btn {
+      font-family: 'Zilla Slab', serif;
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 10px 20px;
+      border-radius: 5px;
+      border: 1px solid transparent;
+      cursor: pointer;
+      transition: background 0.15s, border-color 0.15s;
+    }
+
+    .btn-eco-primary {
+      background: var(--clay-700);
+      color: #ffffff;
+    }
+
+    .btn-eco-primary:hover {
+      background: var(--clay-800);
+    }
+
+    .btn-eco-ghost {
+      background: transparent;
+      color: var(--ink-muted);
+      border-color: var(--line);
+    }
+
+    .btn-eco-ghost:hover {
+      border-color: var(--ink-muted);
+    }
+
+    .btn-sm {
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 5px 12px;
+      border-radius: 4px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--ink-muted);
+      cursor: pointer;
+      white-space: nowrap;
+    }
+
+    .btn-sm.edit { border-color: var(--moss-500); color: var(--moss-700); }
+    .btn-sm.edit:hover { background: var(--moss-100); }
+    .btn-sm.save { border-color: var(--clay-700); background: var(--clay-700); color: #fff; }
+    .btn-sm.save:hover { background: var(--clay-800); }
+    .btn-sm.cancel:hover { background: var(--paper-card-alt); }
+
+    .filter-sort-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 12px;
+      font-size: 0.9rem;
+      font-weight: 500;
+      color: var(--ink-muted);
+    }
+
+    .select-eco {
+      padding: 7px 12px;
+      border-radius: 5px;
+      border: 1px solid var(--line);
+      background: #ffffff;
+      color: var(--ink);
+      font-weight: 500;
+      font-size: 0.88rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    .table-container {
+      background: var(--paper-card);
+      border-radius: 6px;
+      border: 1px solid var(--line);
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    thead th {
+      background: var(--moss-900);
+      color: #ffffff;
+      font-family: 'Zilla Slab', serif;
+      font-size: 0.82rem;
+      font-weight: 600;
+      padding: 13px 14px;
+      white-space: nowrap;
+    }
+
+    thead th.center, tbody td.center {
+      text-align: center;
+    }
+
+    thead th.numeric, tbody td.numeric {
+      text-align: right;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+
+    tbody td {
+      padding: 11px 14px;
+      font-size: 0.9rem;
+      border-bottom: 1px dashed var(--line-soft);
+      color: var(--ink);
+      vertical-align: middle;
+    }
+
+    tbody tr:nth-child(even) td {
+      background: var(--paper-card-alt);
+    }
+
+    tbody tr:hover td {
+      background: var(--moss-100);
+    }
+
+    tbody tr.is-top td:first-child {
+      box-shadow: inset 3px 0 0 var(--clay-500);
+    }
+
+    tbody tr.is-editing td {
+      background: #fffaf0;
+    }
+
+    .project-profile {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+
+    .project-avatar {
+      width: 46px;
+      height: 46px;
+      border-radius: 4px;
+      object-fit: cover;
+      border: 1px solid var(--line);
+      flex-shrink: 0;
+    }
+
+    .project-info-text .name {
+      font-family: 'Zilla Slab', serif;
+      font-weight: 600;
+      color: var(--moss-900);
+      font-size: 0.94rem;
+      display: block;
+    }
+
+    .project-info-text .subtext {
+      font-size: 0.76rem;
+      color: var(--ink-muted);
+    }
+
+    .rank-num {
+      font-family: 'IBM Plex Mono', monospace;
+      font-weight: 700;
+      color: var(--ink-muted);
+    }
+
+    tr.is-top .rank-num {
+      color: var(--clay-700);
+    }
+
+    .method-score-box {
+      display: inline-flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 3px;
+    }
+
+    .score-badge {
+      display: inline-block;
+      font-family: 'IBM Plex Mono', monospace;
+      padding: 4px 10px;
+      border-radius: 3px;
+      font-weight: 700;
+      font-size: 0.86rem;
+      background: var(--paper-card);
+      border: 1px solid var(--moss-500);
+      color: var(--moss-900);
+    }
+
+    .score-badge.saw-badge {
+      background: var(--clay-100);
+      border-color: var(--clay-500);
+      color: var(--clay-800);
+    }
+
+    .score-badge.topsis-badge {
+      background: var(--moss-100);
+      border-color: var(--moss-500);
+      color: var(--moss-800);
+    }
+
+    .score-pos {
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.74rem;
+      color: var(--ink-muted);
+      font-weight: 600;
+    }
+
+    .score-pending {
+      color: #a89a7c;
+      font-style: italic;
+      font-size: 0.82rem;
+    }
+
+    .edit-field {
+      width: 100%;
+      min-width: 62px;
+      padding: 5px 7px;
+      font-family: 'IBM Plex Mono', monospace;
+      font-size: 0.85rem;
+      border: 1px solid var(--moss-500);
+      border-radius: 4px;
+      outline: none;
+      text-align: right;
+      background: #ffffff;
+    }
+
+    .edit-field.text {
+      font-family: 'Plus Jakarta Sans', sans-serif;
+      text-align: left;
+      width: 100%;
+    }
+
+    .edit-name-wrap {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .actions-cell {
+      display: flex;
+      gap: 6px;
+      justify-content: center;
+    }
+
+    .footer-note {
+      margin-top: 22px;
+      text-align: center;
+      color: var(--ink-muted);
+      font-size: 0.82rem;
+      padding: 16px;
+      border-top: 1px dashed var(--line);
+    }
+
+    .score-hidden {
+      display: none !important;
+    }
+  </style>
+</head>
 <body>
 
 <div class="main-wrapper">
   <header class="eco-header">
-    <svg class="contour-overlay" viewBox="0 0 600 220"
-      preserveAspectRatio="xMaxYMid slice"
-      xmlns="http://www.w3.org/2000/svg">
-
+    <svg class="contour-overlay" viewBox="0 0 600 220" preserveAspectRatio="xMaxYMid slice" xmlns="http://www.w3.org/2000/svg">
       <g fill="none" stroke="#ece1c6" stroke-width="1.4">
         <path d="M420,-10 C470,30 520,10 560,50 C600,90 590,150 550,180 C510,210 460,200 430,230"/>
         <path d="M450,-20 C500,15 545,-5 590,35 C630,75 615,140 580,175 C545,210 495,205 460,240"/>
@@ -14,24 +510,15 @@
         <path d="M480,-30 C535,10 575,-15 615,25 C655,65 645,130 610,165 C575,200 525,195 495,230"/>
       </g>
     </svg>
-
     <div class="header-content">
-      <div class="header-kicker">
-        Sistemas de Apoyo a la Decisión · Modelo TDMC
-      </div>
-
+      <div class="header-kicker">Sistemas de Apoyo a la Decisión · Modelo TDMC</div>
       <h1>ReforestAdvisor — SAW y TOPSIS</h1>
-
-      <p>
-        Evaluación y priorización multicriterio para la selección de
-        proyectos de reforestación y restauración de áreas verdes.
-      </p>
+      <p>Evaluación y priorización multicriterio para la selección de proyectos de reforestación y restauración de áreas verdes.</p>
     </div>
   </header>
 
   <main class="container-body">
-
-    <!-- SECCIÓN 1 -->
+    <!-- SECCIÓN 1: PONDERACIÓN -->
     <div class="section-title-wrap">
       <h2 class="section-title">
         <span class="step-mark">01</span>
@@ -40,22 +527,12 @@
     </div>
 
     <div class="weights-card">
-
       <div class="weight-row">
         <div class="criterion-meta">
           <label for="w-costo">Costo del proyecto</label>
           <span class="criterion-type">(costo — minimizar)</span>
         </div>
-
-        <input
-          type="number"
-          id="w-costo"
-          class="weight-input-box"
-          step="0.05"
-          min="0"
-          max="1"
-          value="0.20"
-        >
+        <input type="number" id="w-costo" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
       </div>
 
       <div class="weight-row">
@@ -63,16 +540,7 @@
           <label for="w-arboles">Árboles plantados</label>
           <span class="criterion-type">(beneficio — maximizar)</span>
         </div>
-
-        <input
-          type="number"
-          id="w-arboles"
-          class="weight-input-box"
-          step="0.05"
-          min="0"
-          max="1"
-          value="0.20"
-        >
+        <input type="number" id="w-arboles" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
       </div>
 
       <div class="weight-row">
@@ -80,16 +548,7 @@
           <label for="w-superv">Supervivencia estimada</label>
           <span class="criterion-type">(beneficio — maximizar)</span>
         </div>
-
-        <input
-          type="number"
-          id="w-superv"
-          class="weight-input-box"
-          step="0.05"
-          min="0"
-          max="1"
-          value="0.20"
-        >
+        <input type="number" id="w-superv" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
       </div>
 
       <div class="weight-row">
@@ -97,16 +556,7 @@
           <label for="w-tiempo">Tiempo de ejecución</label>
           <span class="criterion-type">(costo — minimizar)</span>
         </div>
-
-        <input
-          type="number"
-          id="w-tiempo"
-          class="weight-input-box"
-          step="0.05"
-          min="0"
-          max="1"
-          value="0.10"
-        >
+        <input type="number" id="w-tiempo" class="weight-input-box" step="0.05" min="0" max="1" value="0.10">
       </div>
 
       <div class="weight-row">
@@ -114,16 +564,7 @@
           <label for="w-benamb">Beneficio ambiental</label>
           <span class="criterion-type">(beneficio — maximizar)</span>
         </div>
-
-        <input
-          type="number"
-          id="w-benamb"
-          class="weight-input-box"
-          step="0.05"
-          min="0"
-          max="1"
-          value="0.20"
-        >
+        <input type="number" id="w-benamb" class="weight-input-box" step="0.05" min="0" max="1" value="0.20">
       </div>
 
       <div class="weight-row">
@@ -131,84 +572,40 @@
           <label for="w-part">Participación social</label>
           <span class="criterion-type">(beneficio — maximizar)</span>
         </div>
-
-        <input
-          type="number"
-          id="w-part"
-          class="weight-input-box"
-          step="0.05"
-          min="0"
-          max="1"
-          value="0.10"
-        >
+        <input type="number" id="w-part" class="weight-input-box" step="0.05" min="0" max="1" value="0.10">
       </div>
 
       <div class="control-actions-row">
         <div class="sum-badge-wrapper">
           Suma de ponderaciones:
-
-          <span
-            id="weight-sum-badge"
-            class="sum-badge valid"
-          >
-            1.00
-          </span>
-
-          <span id="sum-error-msg">
-            Debe sumar exactamente 1.00
-          </span>
+          <span id="weight-sum-badge" class="sum-badge valid">1.00</span>
+          <span id="sum-error-msg">Debe sumar exactamente 1.00</span>
         </div>
-
         <div class="button-group">
-          <button
-            class="btn btn-eco-ghost"
-            id="btn-reset"
-          >
-            Restablecer
-          </button>
-
-          <button
-            class="btn btn-eco-primary"
-            id="btn-calc"
-          >
-            Ejecutar método
-          </button>
+          <button class="btn btn-eco-ghost" id="btn-reset">Restablecer</button>
+          <button class="btn btn-eco-primary" id="btn-calc">Ejecutar evaluación</button>
         </div>
       </div>
     </div>
 
-    <!-- SECCIÓN 2 -->
+    <!-- SECCIÓN 2: TABLA -->
     <div class="section-title-wrap">
       <h2 class="section-title">
         <span class="step-mark">02</span>
         Proyectos y resultados multicriterio
       </h2>
-
       <div class="filter-sort-bar">
         <label for="method-select">Método:</label>
-
-        <select
-          id="method-select"
-          class="select-eco"
-        >
+        <select id="method-select" class="select-eco">
           <option value="saw">SAW</option>
           <option value="topsis">TOPSIS</option>
-          <option value="both">SAW + TOPSIS</option>
+          <option value="both">SAW + TOPSIS (Comparativa)</option>
         </select>
 
         <label for="sort-select">Ordenar por:</label>
-
-        <select
-          id="sort-select"
-          class="select-eco"
-        >
-          <option value="desc">
-            Mayor a menor calificación
-          </option>
-
-          <option value="asc">
-            Menor a mayor calificación
-          </option>
+        <select id="sort-select" class="select-eco">
+          <option value="desc">Mayor a menor calificación</option>
+          <option value="asc">Menor a mayor calificación</option>
         </select>
       </div>
     </div>
@@ -217,1031 +614,437 @@
       <table>
         <thead>
           <tr>
-            <th
-              class="center"
-              style="width: 46px;"
-            >
-              Pos.
-            </th>
-
-            <th>
-              Proyecto de reforestación
-            </th>
-
-            <th class="numeric">
-              Costo ($k)
-            </th>
-
-            <th class="numeric">
-              Árboles
-            </th>
-
-            <th class="numeric">
-              Superv. (%)
-            </th>
-
-            <th class="numeric">
-              Tiempo (m)
-            </th>
-
-            <th class="numeric">
-              Ben. amb.
-            </th>
-
-            <th class="numeric">
-              Part. com.
-            </th>
-
-            <th
-              class="center score-saw-column"
-              style="width: 130px;"
-            >
-              Resultado SAW
-            </th>
-
-            <th
-              class="center score-topsis-column"
-              style="width: 130px;"
-            >
-              Resultado TOPSIS
-            </th>
-
-            <th
-              class="center"
-              style="width: 130px;"
-            >
-              Acciones
-            </th>
+            <th class="center" style="width: 46px;">Pos.</th>
+            <th>Proyecto de reforestación</th>
+            <th class="numeric">Costo ($k)</th>
+            <th class="numeric">Árboles</th>
+            <th class="numeric">Superv. (%)</th>
+            <th class="numeric">Tiempo (m)</th>
+            <th class="numeric">Ben. amb.</th>
+            <th class="numeric">Part. com.</th>
+            <th class="center col-saw" style="width: 140px;">Calificación SAW</th>
+            <th class="center col-topsis" style="width: 140px;">Calificación TOPSIS</th>
+            <th class="center" style="width: 120px;">Acciones</th>
           </tr>
         </thead>
-
-        <tbody id="projects-table-body"></tbody>
+        <tbody id="projects-table-body">
+          <!-- Inyección dinámica -->
+        </tbody>
       </table>
     </div>
 
     <footer class="footer-note">
-      Universidad Autónoma de Sinaloa · Facultad de Ingeniería Mochis
-      · Unidad Regional Norte
+      Universidad Autónoma de Sinaloa · Facultad de Ingeniería Mochis · Unidad Regional Norte
     </footer>
-
   </main>
 </div>
 
 <script>
   const criteriaConfig = {
-    costo: {
-      type: 'cost',
-      inputId: 'w-costo'
-    },
-
-    arboles: {
-      type: 'benefit',
-      inputId: 'w-arboles'
-    },
-
-    superv: {
-      type: 'benefit',
-      inputId: 'w-superv'
-    },
-
-    tiempo: {
-      type: 'cost',
-      inputId: 'w-tiempo'
-    },
-
-    ben_amb: {
-      type: 'benefit',
-      inputId: 'w-benamb'
-    },
-
-    part: {
-      type: 'benefit',
-      inputId: 'w-part'
-    }
+    costo: { type: 'cost', inputId: 'w-costo' },
+    arboles: { type: 'benefit', inputId: 'w-arboles' },
+    superv: { type: 'benefit', inputId: 'w-superv' },
+    tiempo: { type: 'cost', inputId: 'w-tiempo' },
+    ben_amb: { type: 'benefit', inputId: 'w-benamb' },
+    part: { type: 'benefit', inputId: 'w-part' }
   };
 
   const projectAlternatives = [
-    {
-      id: 1,
-      name: 'Parque Las Palmas',
-      desc: 'Zona recreativa y área verde urbana',
-      costo: 180,
-      arboles: 500,
-      superv: 78,
-      tiempo: 4,
-      ben_amb: 80,
-      part: 75,
-      image: 'https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=160&auto=format&fit=crop&q=80'
-    },
-
-    {
-      id: 2,
-      name: 'Cerro de la Memoria',
-      desc: 'Reserva natural y sendero ecológico',
-      costo: 250,
-      arboles: 900,
-      superv: 72,
-      tiempo: 7,
-      ben_amb: 95,
-      part: 60,
-      image: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=160&auto=format&fit=crop&q=80'
-    },
-
-    {
-      id: 3,
-      name: 'Área Escolar Norte',
-      desc: 'Cinturón verde en perímetro educativo',
-      costo: 120,
-      arboles: 350,
-      superv: 88,
-      tiempo: 3,
-      ben_amb: 70,
-      part: 92,
-      image: 'https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=160&auto=format&fit=crop&q=80'
-    },
-
-    {
-      id: 4,
-      name: 'Arroyo San José',
-      desc: 'Restauración de ribera y cuenca hídrica',
-      costo: 210,
-      arboles: 750,
-      superv: 82,
-      tiempo: 5,
-      ben_amb: 90,
-      part: 80,
-      image: 'https://images.unsplash.com/photo-1448375240586-882707db888b?w=160&auto=format&fit=crop&q=80'
-    },
-
-    {
-      id: 5,
-      name: 'Zona Recreativa El Fuerte',
-      desc: 'Bosque nativo y parque familiar',
-      costo: 160,
-      arboles: 600,
-      superv: 85,
-      tiempo: 4,
-      ben_amb: 84,
-      part: 78,
-      image: 'https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=160&auto=format&fit=crop&q=80'
-    },
-
-    {
-      id: 6,
-      name: 'Camellón Solidaridad',
-      desc: 'Corredor biológico sobre avenida principal',
-      costo: 100,
-      arboles: 250,
-      superv: 90,
-      tiempo: 2,
-      ben_amb: 65,
-      part: 88,
-      image: 'https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=160&auto=format&fit=crop&q=80'
-    },
-
-    {
-      id: 7,
-      name: 'Área Verde La Mochis',
-      desc: 'Espacio comunitario y arbolado joven',
-      costo: 145,
-      arboles: 450,
-      superv: 86,
-      tiempo: 3,
-      ben_amb: 76,
-      part: 85,
-      image: 'https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=160&auto=format&fit=crop&q=80'
-    },
-
-    {
-      id: 8,
-      name: 'Parque Nuevo Horizonte',
-      desc: 'Área protegida periurbana y pulmón verde',
-      costo: 190,
-      arboles: 700,
-      superv: 80,
-      tiempo: 5,
-      ben_amb: 87,
-      part: 82,
-      image: 'https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=160&auto=format&fit=crop&q=80'
-    }
+    { id: 1, name: "Parque Las Palmas", desc: "Zona recreativa y área verde urbana", costo: 180, arboles: 500, superv: 78, tiempo: 4, ben_amb: 80, part: 75, image: "https://images.unsplash.com/photo-1519331379826-f10be5486c6f?w=160&auto=format&fit=crop&q=80" },
+    { id: 2, name: "Cerro de la Memoria", desc: "Reserva natural y sendero ecológico", costo: 250, arboles: 900, superv: 72, tiempo: 7, ben_amb: 95, part: 60, image: "https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?w=160&auto=format&fit=crop&q=80" },
+    { id: 3, name: "Área Escolar Norte", desc: "Cinturón verde en perímetro educativo", costo: 120, arboles: 350, superv: 88, tiempo: 3, ben_amb: 70, part: 92, image: "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?w=160&auto=format&fit=crop&q=80" },
+    { id: 4, name: "Arroyo San José", desc: "Restauración de ribera y cuenca hídrica", costo: 210, arboles: 750, superv: 82, tiempo: 5, ben_amb: 90, part: 80, image: "https://images.unsplash.com/photo-1448375240586-882707db888b?w=160&auto=format&fit=crop&q=80" },
+    { id: 5, name: "Zona Recreativa El Fuerte", desc: "Bosque nativo y parque familiar", costo: 160, arboles: 600, superv: 85, tiempo: 4, ben_amb: 84, part: 78, image: "https://images.unsplash.com/photo-1502082553048-f009c37129b9?w=160&auto=format&fit=crop&q=80" },
+    { id: 6, name: "Camellón Solidaridad", desc: "Corredor biológico sobre avenida principal", costo: 100, arboles: 250, superv: 90, tiempo: 2, ben_amb: 65, part: 88, image: "https://images.unsplash.com/photo-1513836279014-a89f7a76ae86?w=160&auto=format&fit=crop&q=80" },
+    { id: 7, name: "Área Verde La Mochis", desc: "Espacio comunitario y arbolado joven", costo: 145, arboles: 450, superv: 86, tiempo: 3, ben_amb: 76, part: 85, image: "https://images.unsplash.com/photo-1542273917363-3b1817f69a2d?w=160&auto=format&fit=crop&q=80" },
+    { id: 8, name: "Parque Nuevo Horizonte", desc: "Área protegida periurbana y pulmón verde", costo: 190, arboles: 700, superv: 80, tiempo: 5, ben_amb: 87, part: 82, image: "https://images.unsplash.com/photo-1473448912268-2022ce9509d8?w=160&auto=format&fit=crop&q=80" }
   ];
 
   let currentDisplayList = [];
+  let hasEvaluated = false;
   let editingId = null;
-  let hasExecutedMethod = false;
 
   function getWeights() {
     const weights = {};
-
-    for (const key in criteriaConfig) {
-      const input = document.getElementById(
-        criteriaConfig[key].inputId
-      );
-
-      weights[key] = parseFloat(input.value) || 0;
+    for (let key in criteriaConfig) {
+      weights[key] = parseFloat(document.getElementById(criteriaConfig[key].inputId).value) || 0;
     }
-
     return weights;
   }
 
   function checkWeightSum() {
     const weights = getWeights();
-
-    const sum = Object.values(weights).reduce(
-      (total, value) => total + value,
-      0
-    );
-
-    const badge = document.getElementById(
-      'weight-sum-badge'
-    );
-
-    const message = document.getElementById(
-      'sum-error-msg'
-    );
-
+    const sum = Object.values(weights).reduce((a, b) => a + b, 0);
+    const badge = document.getElementById('weight-sum-badge');
+    const msg = document.getElementById('sum-error-msg');
     badge.textContent = sum.toFixed(2);
 
-    if (Math.abs(sum - 1) < 0.001) {
+    if (Math.abs(sum - 1.0) < 0.001) {
       badge.className = 'sum-badge valid';
-      message.style.display = 'none';
+      msg.style.display = 'none';
       return true;
+    } else {
+      badge.className = 'sum-badge invalid';
+      msg.style.display = 'inline';
+      return false;
     }
-
-    badge.className = 'sum-badge invalid';
-    message.style.display = 'inline';
-    return false;
   }
 
-  function calculateSAW(weights) {
+  for (let key in criteriaConfig) {
+    document.getElementById(criteriaConfig[key].inputId).addEventListener('input', checkWeightSum);
+  }
+
+  function computeSAW(weights) {
     const extremes = {};
-
-    for (const key in criteriaConfig) {
-      const values = projectAlternatives.map(
-        project => project[key]
-      );
-
-      extremes[key] = {
-        min: Math.min(...values),
-        max: Math.max(...values)
-      };
+    for (let key in criteriaConfig) {
+      const values = projectAlternatives.map(p => p[key]);
+      extremes[key] = { min: Math.min(...values), max: Math.max(...values) };
     }
 
-    return projectAlternatives.map(project => {
-      const normalized = {};
-      let score = 0;
-
-      for (const key in criteriaConfig) {
-        let value;
-
+    const calculated = projectAlternatives.map(item => {
+      let finalScore = 0;
+      const normalizedRecord = {};
+      for (let key in criteriaConfig) {
+        let normVal = 0;
         if (criteriaConfig[key].type === 'benefit') {
-          value = project[key] / extremes[key].max;
+          normVal = item[key] / extremes[key].max;
         } else {
-          value = extremes[key].min / project[key];
+          normVal = extremes[key].min / item[key];
         }
-
-        normalized[key] = value;
-        score += value * weights[key];
+        normalizedRecord[key] = normVal;
+        finalScore += normVal * weights[key];
       }
+      return { ...item, sawScore: finalScore, sawNorm: normalizedRecord };
+    });
 
-      return {
-        ...project,
-        sawScore: score,
-        sawNormalized: normalized
-      };
+    const sorted = [...calculated].sort((a, b) => b.sawScore - a.sawScore);
+    sorted.forEach((item, idx) => {
+      if (idx === 0) item.sawRank = 1;
+      else {
+        const prev = sorted[idx - 1];
+        item.sawRank = Math.abs(prev.sawScore - item.sawScore) < 0.00001 ? prev.sawRank : idx + 1;
+      }
+    });
+
+    return calculated.map(item => {
+      const match = sorted.find(s => s.id === item.id);
+      return { ...item, sawRank: match.sawRank };
     });
   }
 
-  function calculateTOPSIS(weights) {
+  function computeTOPSIS(weights) {
     const denominators = {};
-
-    for (const key in criteriaConfig) {
-      const sumSquares = projectAlternatives.reduce(
-        (sum, project) => {
-          return sum + Math.pow(project[key], 2);
-        },
-        0
-      );
-
-      denominators[key] = Math.sqrt(sumSquares);
+    for (let key in criteriaConfig) {
+      const sumSq = projectAlternatives.reduce((acc, p) => acc + Math.pow(p[key], 2), 0);
+      denominators[key] = Math.sqrt(sumSq);
     }
 
-    const weightedMatrix = projectAlternatives.map(
-      project => {
-        const values = {};
-
-        for (const key in criteriaConfig) {
-          const normalized =
-            project[key] / denominators[key];
-
-          values[key] = normalized * weights[key];
-        }
-
-        return {
-          id: project.id,
-          values
-        };
+    const weighted = projectAlternatives.map(p => {
+      const wRecord = {};
+      for (let key in criteriaConfig) {
+        const r_ij = p[key] / denominators[key];
+        wRecord[key] = r_ij * weights[key];
       }
-    );
+      return { id: p.id, values: wRecord };
+    });
 
-    const idealPositive = {};
-    const idealNegative = {};
-
-    for (const key in criteriaConfig) {
-      const values = weightedMatrix.map(
-        item => item.values[key]
-      );
-
+    const idealPos = {};
+    const idealNeg = {};
+    for (let key in criteriaConfig) {
+      const colValues = weighted.map(w => w.values[key]);
       if (criteriaConfig[key].type === 'benefit') {
-        idealPositive[key] = Math.max(...values);
-        idealNegative[key] = Math.min(...values);
+        idealPos[key] = Math.max(...colValues);
+        idealNeg[key] = Math.min(...colValues);
       } else {
-        idealPositive[key] = Math.min(...values);
-        idealNegative[key] = Math.max(...values);
+        idealPos[key] = Math.min(...colValues);
+        idealNeg[key] = Math.max(...colValues);
       }
     }
 
-    return projectAlternatives.map(project => {
-      const matrixItem = weightedMatrix.find(
-        item => item.id === project.id
-      );
-
-      let positiveDistance = 0;
-      let negativeDistance = 0;
-
-      for (const key in criteriaConfig) {
-        positiveDistance += Math.pow(
-          matrixItem.values[key] -
-          idealPositive[key],
-          2
-        );
-
-        negativeDistance += Math.pow(
-          matrixItem.values[key] -
-          idealNegative[key],
-          2
-        );
+    const calculated = projectAlternatives.map(p => {
+      const wRecord = weighted.find(w => w.id === p.id).values;
+      let dPosSq = 0;
+      let dNegSq = 0;
+      for (let key in criteriaConfig) {
+        dPosSq += Math.pow(wRecord[key] - idealPos[key], 2);
+        dNegSq += Math.pow(wRecord[key] - idealNeg[key], 2);
       }
+      const dPos = Math.sqrt(dPosSq);
+      const dNeg = Math.sqrt(dNegSq);
+      const c_i = (dPos + dNeg === 0) ? 1 : (dNeg / (dPos + dNeg));
+      return { ...p, topsisScore: c_i };
+    });
 
-      positiveDistance = Math.sqrt(positiveDistance);
-      negativeDistance = Math.sqrt(negativeDistance);
+    const sorted = [...calculated].sort((a, b) => b.topsisScore - a.topsisScore);
+    sorted.forEach((item, idx) => {
+      if (idx === 0) item.topsisRank = 1;
+      else {
+        const prev = sorted[idx - 1];
+        item.topsisRank = Math.abs(prev.topsisScore - item.topsisScore) < 0.00001 ? prev.topsisRank : idx + 1;
+      }
+    });
 
-      const totalDistance =
-        positiveDistance + negativeDistance;
-
-      const score = totalDistance === 0
-        ? 1
-        : negativeDistance / totalDistance;
-
-      return {
-        ...project,
-        topsisScore: score,
-        topsisNormalized: matrixItem.values
-      };
+    return calculated.map(item => {
+      const match = sorted.find(s => s.id === item.id);
+      return { ...item, topsisRank: match.topsisRank };
     });
   }
 
-  function assignRanks(
-    list,
-    scoreProperty,
-    normalizedProperty,
-    rankProperty
-  ) {
-    const sorted = [...list];
+  function updateColumnVisibility() {
+    const method = document.getElementById('method-select').value;
+    const sawCols = document.querySelectorAll('.col-saw');
+    const topsisCols = document.querySelectorAll('.col-topsis');
 
-    const order =
-      document.getElementById('sort-select').value;
-
-    const descending = order === 'desc';
-
-    sorted.sort((a, b) => {
-      const difference =
-        b[scoreProperty] - a[scoreProperty];
-
-      if (Math.abs(difference) > 0.00001) {
-        return descending
-          ? difference
-          : -difference;
-      }
-
-      return a.id - b.id;
+    sawCols.forEach(col => {
+      col.classList.toggle('score-hidden', method === 'topsis');
     });
-
-    let rank = 1;
-
-    sorted.forEach((item, index) => {
-      if (index > 0) {
-        const previous = sorted[index - 1];
-
-        const tied =
-          Math.abs(
-            item[scoreProperty] -
-            previous[scoreProperty]
-          ) < 0.00001;
-
-        if (!tied) {
-          rank = index + 1;
-        }
-      }
-
-      item[rankProperty] = rank;
-    });
-
-    return sorted;
-  }
-
-  function calculateBoth(weights) {
-    const sawResults = calculateSAW(weights);
-    const topsisResults = calculateTOPSIS(weights);
-
-    const sawRanked = assignRanks(
-      sawResults,
-      'sawScore',
-      'sawNormalized',
-      'sawRank'
-    );
-
-    const topsisRanked = assignRanks(
-      topsisResults,
-      'topsisScore',
-      'topsisNormalized',
-      'topsisRank'
-    );
-
-    return projectAlternatives.map(project => {
-      const saw = sawRanked.find(
-        item => item.id === project.id
-      );
-
-      const topsis = topsisRanked.find(
-        item => item.id === project.id
-      );
-
-      return {
-        ...project,
-
-        sawScore: saw.sawScore,
-        sawRank: saw.sawRank,
-
-        topsisScore: topsis.topsisScore,
-        topsisRank: topsis.topsisRank,
-
-        comparisonScore:
-          (saw.sawScore + topsis.topsisScore) / 2
-      };
+    topsisCols.forEach(col => {
+      col.classList.toggle('score-hidden', method === 'saw');
     });
   }
 
-  function buildScoreHTML(
-    score,
-    rank,
-    type
-  ) {
-    if (score === undefined) {
-      return `
-        <span class="score-pending">
-          Sin evaluar
-        </span>
-      `;
-    }
+  function buildViewRow(proj) {
+    const rankHtml = proj.displayRank !== undefined
+      ? `<span class="rank-num">${proj.displayRank}</span>`
+      : `<span class="rank-num">—</span>`;
+
+    const sawHtml = proj.sawScore !== undefined
+      ? `<div class="method-score-box">
+           <span class="score-badge saw-badge">${proj.sawScore.toFixed(4)}</span>
+           <span class="score-pos">Lugar #${proj.sawRank}</span>
+         </div>`
+      : `<span class="score-pending">Sin evaluar</span>`;
+
+    const topsisHtml = proj.topsisScore !== undefined
+      ? `<div class="method-score-box">
+           <span class="score-badge topsis-badge">${proj.topsisScore.toFixed(4)}</span>
+           <span class="score-pos">Lugar #${proj.topsisRank}</span>
+         </div>`
+      : `<span class="score-pending">Sin evaluar</span>`;
 
     return `
-      <div class="method-score ${type}-score">
-        <strong>${score.toFixed(4)}</strong>
-        <small>Pos. ${rank}</small>
-      </div>
-    `;
-  }
-
-  function buildViewRow(project) {
-    return `
-      <td class="center">
-        <span class="rank-num">
-          ${project.rank ?? '—'}
-        </span>
-      </td>
-
+      <td class="center">${rankHtml}</td>
       <td>
         <div class="project-profile">
-          <img
-            src="${project.image}"
-            alt="${project.name}"
-            class="project-avatar"
-            loading="lazy"
-          >
-
+          <img src="${proj.image}" alt="${proj.name}" class="project-avatar" loading="lazy">
           <div class="project-info-text">
-            <span class="name">
-              ${project.name}
-            </span>
-
-            <span class="subtext">
-              ${project.desc}
-            </span>
+            <span class="name">${proj.name}</span>
+            <span class="subtext">${proj.desc}</span>
           </div>
         </div>
       </td>
-
-      <td class="numeric">
-        ${project.costo}
-      </td>
-
-      <td class="numeric">
-        ${project.arboles.toLocaleString()}
-      </td>
-
-      <td class="numeric">
-        ${project.superv}%
-      </td>
-
-      <td class="numeric">
-        ${project.tiempo} m
-      </td>
-
-      <td class="numeric">
-        ${project.ben_amb}
-      </td>
-
-      <td class="numeric">
-        ${project.part}
-      </td>
-
-      <td class="center score-saw-column">
-        ${buildScoreHTML(
-          project.sawScore,
-          project.sawRank,
-          'saw'
-        )}
-      </td>
-
-      <td class="center score-topsis-column">
-        ${buildScoreHTML(
-          project.topsisScore,
-          project.topsisRank,
-          'topsis'
-        )}
-      </td>
-
+      <td class="numeric">${proj.costo}</td>
+      <td class="numeric">${proj.arboles.toLocaleString()}</td>
+      <td class="numeric">${proj.superv}%</td>
+      <td class="numeric">${proj.tiempo} m</td>
+      <td class="numeric">${proj.ben_amb}</td>
+      <td class="numeric">${proj.part}</td>
+      <td class="center col-saw">${sawHtml}</td>
+      <td class="center col-topsis">${topsisHtml}</td>
       <td class="center">
         <div class="actions-cell">
-          <button
-            class="btn-sm edit js-edit"
-            data-id="${project.id}"
-          >
-            Editar
-          </button>
+          <button class="btn-sm edit js-edit" data-id="${proj.id}">Editar</button>
         </div>
       </td>
     `;
   }
 
-  function buildEditRow(project) {
+  function buildEditRow(proj) {
     return `
       <td class="center">—</td>
-
       <td>
         <div class="edit-name-wrap">
-          <input
-            type="text"
-            class="edit-field text edit-name"
-            value="${project.name}"
-          >
-
-          <input
-            type="text"
-            class="edit-field text edit-desc"
-            value="${project.desc}"
-          >
+          <input type="text" class="edit-field text edit-name" value="${proj.name}">
+          <input type="text" class="edit-field text edit-desc" value="${proj.desc}">
         </div>
       </td>
-
-      <td class="numeric">
-        <input
-          type="number"
-          class="edit-field edit-costo"
-          value="${project.costo}"
-          min="0.01"
-          step="1"
-        >
-      </td>
-
-      <td class="numeric">
-        <input
-          type="number"
-          class="edit-field edit-arboles"
-          value="${project.arboles}"
-          min="0"
-          step="1"
-        >
-      </td>
-
-      <td class="numeric">
-        <input
-          type="number"
-          class="edit-field edit-superv"
-          value="${project.superv}"
-          min="0"
-          max="100"
-          step="1"
-        >
-      </td>
-
-      <td class="numeric">
-        <input
-          type="number"
-          class="edit-field edit-tiempo"
-          value="${project.tiempo}"
-          min="0.1"
-          step="0.5"
-        >
-      </td>
-
-      <td class="numeric">
-        <input
-          type="number"
-          class="edit-field edit-ben_amb"
-          value="${project.ben_amb}"
-          min="0"
-          step="1"
-        >
-      </td>
-
-      <td class="numeric">
-        <input
-          type="number"
-          class="edit-field edit-part"
-          value="${project.part}"
-          min="0"
-          step="1"
-        >
-      </td>
-
-      <td class="center score-saw-column">
-        <span class="score-pending">
-          Sin evaluar
-        </span>
-      </td>
-
-      <td class="center score-topsis-column">
-        <span class="score-pending">
-          Sin evaluar
-        </span>
-      </td>
-
+      <td class="numeric"><input type="number" class="edit-field edit-costo" value="${proj.costo}" min="0.01" step="1"></td>
+      <td class="numeric"><input type="number" class="edit-field edit-arboles" value="${proj.arboles}" min="0" step="1"></td>
+      <td class="numeric"><input type="number" class="edit-field edit-superv" value="${proj.superv}" min="0" max="100" step="1"></td>
+      <td class="numeric"><input type="number" class="edit-field edit-tiempo" value="${proj.tiempo}" min="0.1" step="0.5"></td>
+      <td class="numeric"><input type="number" class="edit-field edit-ben_amb" value="${proj.ben_amb}" min="0" step="1"></td>
+      <td class="numeric"><input type="number" class="edit-field edit-part" value="${proj.part}" min="0" step="1"></td>
+      <td class="center col-saw"><span class="score-pending">Sin evaluar</span></td>
+      <td class="center col-topsis"><span class="score-pending">Sin evaluar</span></td>
       <td class="center">
         <div class="actions-cell">
-          <button
-            class="btn-sm save js-save"
-            data-id="${project.id}"
-          >
-            Guardar
-          </button>
-
-          <button
-            class="btn-sm cancel js-cancel"
-            data-id="${project.id}"
-          >
-            Cancelar
-          </button>
+          <button class="btn-sm save js-save" data-id="${proj.id}">Guardar</button>
+          <button class="btn-sm cancel js-cancel" data-id="${proj.id}">Cancelar</button>
         </div>
       </td>
     `;
   }
 
   function renderView(items) {
-    const tbody = document.getElementById(
-      'projects-table-body'
-    );
-
+    const tbody = document.getElementById('projects-table-body');
     tbody.innerHTML = '';
 
-    items.forEach(project => {
-      const row = document.createElement('tr');
-
-      row.dataset.id = project.id;
-
-      if (project.rank === 1) {
-        row.classList.add('is-top');
-      }
-
-      if (editingId === project.id) {
-        row.classList.add('is-editing');
-        row.innerHTML = buildEditRow(project);
+    items.forEach((proj) => {
+      const tr = document.createElement('tr');
+      tr.dataset.id = proj.id;
+      if (proj.displayRank === 1) tr.classList.add('is-top');
+      if (editingId === proj.id) {
+        tr.classList.add('is-editing');
+        tr.innerHTML = buildEditRow(proj);
       } else {
-        row.innerHTML = buildViewRow(project);
+        tr.innerHTML = buildViewRow(proj);
       }
-
-      tbody.appendChild(row);
+      tbody.appendChild(tr);
     });
 
-    tbody.querySelectorAll('.js-edit')
-      .forEach(button => {
-        button.addEventListener('click', () => {
-          editingId = parseInt(
-            button.dataset.id,
-            10
-          );
-
-          renderView(currentDisplayList);
-        });
+    tbody.querySelectorAll('.js-edit').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingId = parseInt(btn.dataset.id, 10);
+        renderView(currentDisplayList);
       });
+    });
 
-    tbody.querySelectorAll('.js-cancel')
-      .forEach(button => {
-        button.addEventListener('click', () => {
-          editingId = null;
-          renderView(currentDisplayList);
-        });
+    tbody.querySelectorAll('.js-cancel').forEach(btn => {
+      btn.addEventListener('click', () => {
+        editingId = null;
+        renderView(currentDisplayList);
       });
+    });
 
-    tbody.querySelectorAll('.js-save')
-      .forEach(button => {
-        button.addEventListener('click', () => {
-          saveEdit(
-            parseInt(button.dataset.id, 10)
-          );
-        });
-      });
+    tbody.querySelectorAll('.js-save').forEach(btn => {
+      btn.addEventListener('click', () => saveEdit(parseInt(btn.dataset.id, 10)));
+    });
 
-    updateMethodColumns();
+    updateColumnVisibility();
   }
 
   function saveEdit(id) {
-    const row = document.querySelector(
-      `tr[data-id="${id}"]`
-    );
+    const row = document.querySelector(`tr[data-id="${id}"]`);
+    const proj = projectAlternatives.find(p => p.id === id);
 
-    const project = projectAlternatives.find(
-      item => item.id === id
-    );
-
-    const name = row
-      .querySelector('.edit-name')
-      .value
-      .trim();
-
-    const desc = row
-      .querySelector('.edit-desc')
-      .value
-      .trim();
-
-    const costo = parseFloat(
-      row.querySelector('.edit-costo').value
-    );
-
-    const arboles = parseFloat(
-      row.querySelector('.edit-arboles').value
-    );
-
-    const superv = parseFloat(
-      row.querySelector('.edit-superv').value
-    );
-
-    const tiempo = parseFloat(
-      row.querySelector('.edit-tiempo').value
-    );
-
-    const benAmb = parseFloat(
-      row.querySelector('.edit-ben_amb').value
-    );
-
-    const part = parseFloat(
-      row.querySelector('.edit-part').value
-    );
+    const name = row.querySelector('.edit-name').value.trim();
+    const desc = row.querySelector('.edit-desc').value.trim();
+    const costo = parseFloat(row.querySelector('.edit-costo').value);
+    const arboles = parseFloat(row.querySelector('.edit-arboles').value);
+    const superv = parseFloat(row.querySelector('.edit-superv').value);
+    const tiempo = parseFloat(row.querySelector('.edit-tiempo').value);
+    const ben_amb = parseFloat(row.querySelector('.edit-ben_amb').value);
+    const part = parseFloat(row.querySelector('.edit-part').value);
 
     if (!name) {
-      alert(
-        'El nombre del proyecto no puede estar vacío.'
-      );
-
+      alert('El nombre del proyecto no puede estar vacío.');
       return;
     }
-
-    const numbers = [
-      costo,
-      arboles,
-      superv,
-      tiempo,
-      benAmb,
-      part
-    ];
-
-    if (
-      numbers.some(
-        value => Number.isNaN(value) || value < 0
-      )
-    ) {
-      alert(
-        'Todos los valores numéricos deben ser válidos.'
-      );
-
+    const numericValues = [costo, arboles, superv, tiempo, ben_amb, part];
+    if (numericValues.some(v => isNaN(v) || v < 0)) {
+      alert('Todos los valores numéricos deben ser válidos y positivos.');
       return;
     }
-
     if (costo <= 0 || tiempo <= 0) {
-      alert(
-        'El costo y el tiempo deben ser mayores que cero.'
-      );
-
+      alert('El costo y el tiempo deben ser mayores a cero.');
       return;
     }
 
-    project.name = name;
-    project.desc = desc;
-    project.costo = costo;
-    project.arboles = arboles;
-    project.superv = superv;
-    project.tiempo = tiempo;
-    project.ben_amb = benAmb;
-    project.part = part;
+    proj.name = name;
+    proj.desc = desc;
+    proj.costo = costo;
+    proj.arboles = arboles;
+    proj.superv = superv;
+    proj.tiempo = tiempo;
+    proj.ben_amb = ben_amb;
+    proj.part = part;
 
     editingId = null;
-    hasExecutedMethod = false;
+    hasEvaluated = false;
     currentDisplayList = [...projectAlternatives];
-
     renderView(currentDisplayList);
   }
 
-  function executeSelectedMethod() {
+  function evaluate() {
     if (!checkWeightSum()) {
-      alert(
-        'La suma de las ponderaciones debe ser exactamente 1.00.'
-      );
-
+      alert('La suma de las ponderaciones debe ser exactamente 1.00');
       return;
     }
 
-    const method = document.getElementById(
-      'method-select'
-    ).value;
-
     const weights = getWeights();
+    const method = document.getElementById('method-select').value;
+    const isDesc = document.getElementById('sort-select').value === 'desc';
 
-    let results;
+    const sawData = computeSAW(weights);
+    const topsisData = computeTOPSIS(weights);
 
-    if (method === 'saw') {
-      results = calculateSAW(weights);
+    let combined = projectAlternatives.map(p => {
+      const s = sawData.find(x => x.id === p.id);
+      const t = topsisData.find(x => x.id === p.id);
+      return {
+        ...p,
+        sawScore: s.sawScore,
+        sawRank: s.sawRank,
+        topsisScore: t.topsisScore,
+        topsisRank: t.topsisRank,
+        avgScore: (s.sawScore + t.topsisScore) / 2
+      };
+    });
 
-      results = assignRanks(
-        results,
-        'sawScore',
-        'sawNormalized',
-        'sawRank'
-      );
+    combined.sort((a, b) => {
+      let diff = 0;
+      if (method === 'saw') {
+        diff = b.sawScore - a.sawScore;
+      } else if (method === 'topsis') {
+        diff = b.topsisScore - a.topsisScore;
+      } else {
+        diff = b.avgScore - a.avgScore;
+      }
+      return isDesc ? diff : -diff;
+    });
 
-      results = results.map(project => ({
-        ...project,
-        rank: project.sawRank
-      }));
-    }
+    combined.forEach((item, index) => {
+      if (method === 'saw') item.displayRank = item.sawRank;
+      else if (method === 'topsis') item.displayRank = item.topsisRank;
+      else item.displayRank = index + 1;
+    });
 
-    if (method === 'topsis') {
-      results = calculateTOPSIS(weights);
-
-      results = assignRanks(
-        results,
-        'topsisScore',
-        'topsisNormalized',
-        'topsisRank'
-      );
-
-      results = results.map(project => ({
-        ...project,
-        rank: project.topsisRank
-      }));
-    }
-
-    if (method === 'both') {
-      results = calculateBoth(weights);
-
-      const order =
-        document.getElementById('sort-select').value;
-
-      results.sort((a, b) => {
-        return order === 'desc'
-          ? b.comparisonScore - a.comparisonScore
-          : a.comparisonScore - b.comparisonScore;
-      });
-
-      results = results.map((project, index) => ({
-        ...project,
-        rank: index + 1
-      }));
-    }
-
-    currentDisplayList = results;
-    hasExecutedMethod = true;
-
+    currentDisplayList = combined;
+    hasEvaluated = true;
     renderView(currentDisplayList);
   }
 
-  function updateMethodColumns() {
-    const method = document.getElementById(
-      'method-select'
-    ).value;
+  document.getElementById('btn-calc').addEventListener('click', evaluate);
 
-    const sawColumns = document.querySelectorAll(
-      '.score-saw-column'
-    );
-
-    const topsisColumns = document.querySelectorAll(
-      '.score-topsis-column'
-    );
-
-    sawColumns.forEach(column => {
-      column.classList.toggle(
-        'score-hidden',
-        method === 'topsis'
-      );
-    });
-
-    topsisColumns.forEach(column => {
-      column.classList.toggle(
-        'score-hidden',
-        method === 'saw'
-      );
-    });
-  }
-
-  document.querySelectorAll(
-    '.weight-input-box'
-  ).forEach(input => {
-    input.addEventListener(
-      'input',
-      checkWeightSum
-    );
+  document.getElementById('method-select').addEventListener('change', () => {
+    updateColumnVisibility();
+    if (hasEvaluated) evaluate();
+    else renderView(currentDisplayList);
   });
 
-  document.getElementById(
-    'btn-calc'
-  ).addEventListener(
-    'click',
-    executeSelectedMethod
-  );
-
-  document.getElementById(
-    'method-select'
-  ).addEventListener(
-    'change',
-    () => {
-      updateMethodColumns();
-
-      if (hasExecutedMethod) {
-        executeSelectedMethod();
-      }
-    }
-  );
-
-  document.getElementById(
-    'sort-select'
-  ).addEventListener(
-    'change',
-    () => {
-      if (hasExecutedMethod) {
-        executeSelectedMethod();
-      }
-    }
-  );
-
-  document.getElementById(
-    'btn-reset'
-  ).addEventListener(
-    'click',
-    () => {
-      document.getElementById('w-costo').value = '0.20';
-      document.getElementById('w-arboles').value = '0.20';
-      document.getElementById('w-superv').value = '0.20';
-      document.getElementById('w-tiempo').value = '0.10';
-      document.getElementById('w-benamb').value = '0.20';
-      document.getElementById('w-part').value = '0.10';
-
-      document.getElementById(
-        'method-select'
-      ).value = 'saw';
-
-      document.getElementById(
-        'sort-select'
-      ).value = 'desc';
-
-      editingId = null;
-      hasExecutedMethod = false;
-      currentDisplayList = [...projectAlternatives];
-
-      checkWeightSum();
+  document.getElementById('sort-select').addEventListener('change', () => {
+    if (hasEvaluated) {
+      evaluate();
+    } else {
+      const order = document.getElementById('sort-select').value;
+      const list = [...projectAlternatives];
+      if (order === 'asc') list.reverse();
+      currentDisplayList = list;
       renderView(currentDisplayList);
     }
-  );
+  });
 
-  window.addEventListener(
-    'DOMContentLoaded',
-    () => {
-      checkWeightSum();
+  document.getElementById('btn-reset').addEventListener('click', () => {
+    document.getElementById('w-costo').value = '0.20';
+    document.getElementById('w-arboles').value = '0.20';
+    document.getElementById('w-superv').value = '0.20';
+    document.getElementById('w-tiempo').value = '0.10';
+    document.getElementById('w-benamb').value = '0.20';
+    document.getElementById('w-part').value = '0.10';
+    document.getElementById('method-select').value = 'saw';
+    document.getElementById('sort-select').value = 'desc';
+    checkWeightSum();
+    hasEvaluated = false;
+    editingId = null;
+    currentDisplayList = [...projectAlternatives];
+    renderView(currentDisplayList);
+  });
 
-      currentDisplayList = [...projectAlternatives];
-
-      renderView(currentDisplayList);
-    }
-  );
+  window.addEventListener('DOMContentLoaded', () => {
+    checkWeightSum();
+    currentDisplayList = [...projectAlternatives];
+    renderView(currentDisplayList);
+  });
 </script>
 
 </body>
